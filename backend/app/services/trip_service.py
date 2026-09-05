@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models.trip import Trip
 from app.models.trip_member import TripMember
-from app.schemas.trip import TripCreate, TripUpdate
+from app.schemas.trip import TripCreate, TripUpdate, TripInviteRequest
 from app.core.constants import MemberRole, MemberStatus
 
 from app.crud.trip import (
@@ -12,10 +12,10 @@ from app.crud.trip import (
     create_trip_member_row,
     get_trip_by_id,
     get_trips_for_user,
+    get_pending_invites_for_user,
     get_trip_member,
-    get_trip_members,
-    delete_trip_row,
-    delete_trip_member_row,
+    get_trip_members as get_trip_members_crud,
+    get_user_by_email_for_invite,
 )
 
 
@@ -41,8 +41,6 @@ def create_trip(
         )
 
         create_trip_row(db, trip)
-
-        # Assign trip.id without committing
         db.flush()
 
         member = TripMember(
@@ -63,12 +61,24 @@ def create_trip(
         db.rollback()
         raise
 
+def get_trip_members(
+    db: Session,
+    trip_id: UUID,
+) -> list[TripMember]:
+    return get_trip_members_crud(db, trip_id)
 
 def get_user_trips(
     db: Session,
     user_id: UUID,
 ) -> list[Trip]:
     return get_trips_for_user(db, user_id)
+
+
+def get_user_invites(
+    db: Session,
+    user_id: UUID,
+) -> list[Trip]:
+    return get_pending_invites_for_user(db, user_id)
 
 
 def get_trip_or_404(
@@ -94,16 +104,10 @@ def ensure_trip_member(
     must not pass this check.
     """
 
-    member = get_trip_member(
-        db,
-        trip_id,
-        user_id,
-    )
+    member = get_trip_member(db, trip_id, user_id)
 
     if member is None or member.status != MemberStatus.JOINED.value:
-        raise PermissionError(
-            "You are not an active member of this trip"
-        )
+        raise PermissionError("You are not an active member of this trip")
 
     return member
 
@@ -118,9 +122,7 @@ def update_trip(
     """
 
     try:
-        update_fields = update_data.model_dump(
-            exclude_unset=True
-        )
+        update_fields = update_data.model_dump(exclude_unset=True)
 
         for field, value in update_fields.items():
             setattr(trip, field, value)
@@ -163,6 +165,117 @@ def delete_trip(
         db.delete(trip)
         db.commit()
 
+    except Exception:
+        db.rollback()
+        raise
+
+
+def invite_member(
+    db: Session,
+    trip: Trip,
+    invite_data: TripInviteRequest,
+    inviter_id: UUID,
+) -> TripMember:
+    if trip.organizer_id != inviter_id:
+        raise PermissionError(
+            "Only the organizer can invite members"
+        )
+
+    invitee = get_user_by_email_for_invite(
+        db,
+        str(invite_data.email).lower().strip(),
+    )
+
+    if invitee is None:
+        raise ValueError(
+            "No user found with that email"
+        )
+
+    existing = get_trip_member(
+        db,
+        trip.id,
+        invitee.id,
+    )
+
+    if existing is not None:
+        if existing.status in (
+            MemberStatus.INVITED.value,
+            MemberStatus.JOINED.value,
+        ):
+            raise ValueError(
+                "This user is already invited or a member of this trip"
+            )
+
+        existing.status = MemberStatus.INVITED.value
+        existing.role = MemberRole.MEMBER.value
+
+        try:
+            db.commit()
+            db.refresh(existing)
+            return existing
+        except Exception:
+            db.rollback()
+            raise
+
+    member = TripMember(
+        trip_id=trip.id,
+        user_id=invitee.id,
+        role=MemberRole.MEMBER.value,
+        status=MemberStatus.INVITED.value,
+    )
+
+    create_trip_member_row(db, member)
+
+    try:
+        db.commit()
+        db.refresh(member)
+        return member
+    except Exception:
+        db.rollback()
+        raise
+
+
+def respond_to_invite(
+    db: Session,
+    trip_id: UUID,
+    user_id: UUID,
+    accept: bool,
+) -> TripMember:
+    member = get_trip_member(db, trip_id, user_id)
+
+    if member is None or member.status != MemberStatus.INVITED.value:
+        raise ValueError("No pending invite found for this trip")
+
+    member.status = MemberStatus.JOINED.value if accept else MemberStatus.DECLINED.value
+
+    try:
+        db.commit()
+        db.refresh(member)
+        return member
+    except Exception:
+        db.rollback()
+        raise
+
+
+def leave_trip(
+    db: Session,
+    trip: Trip,
+    user_id: UUID,
+) -> TripMember:
+    if trip.organizer_id == user_id:
+        raise ValueError("The organizer cannot leave their own trip")
+
+    member = get_trip_member(db, trip.id, user_id)
+
+    if member is None or member.status != MemberStatus.JOINED.value:
+        raise ValueError("You are not an active member of this trip")
+
+    member.status = MemberStatus.LEFT.value
+
+    try:
+        db.commit()
+        db.refresh(member)
+        return member
     except Exception:
         db.rollback()
         raise

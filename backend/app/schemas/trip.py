@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from uuid import UUID
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, model_validator
 from app.core.constants import TripStatus, MemberRole, MemberStatus
 
 
@@ -82,3 +82,11 @@ class TripMemberResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class TripInviteRequest(BaseModel):
+    email: EmailStr
+
+
+class TripRespondRequest(BaseModel):
+    accept: bool
+

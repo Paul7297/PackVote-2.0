@@ -6,14 +6,26 @@ from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
-from app.schemas.trip import TripCreate, TripUpdate, TripResponse
+from app.schemas.trip import (
+    TripCreate,
+    TripUpdate,
+    TripResponse,
+    TripInviteRequest,
+    TripRespondRequest,
+    TripMemberResponse,
+)
 from app.services.trip_service import (
     create_trip,
     get_user_trips,
+    get_user_invites,
     get_trip_or_404,
     ensure_trip_member,
     update_trip,
     delete_trip,
+    invite_member,
+    respond_to_invite,
+    leave_trip,
+    get_trip_members,
 )
 
 router = APIRouter(
@@ -51,6 +63,14 @@ def list_my_trips(
         db,
         current_user.id,
     )
+
+
+@router.get("/invitations", response_model=list[TripResponse])
+def list_my_invitations(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return get_user_invites(db, current_user.id)
 
 
 @router.get(
@@ -158,3 +178,62 @@ def delete_trip_endpoint(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
+
+
+@router.get("/{trip_id}/members", response_model=list[TripMemberResponse])
+def list_trip_members(
+    trip_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        get_trip_or_404(db, trip_id)
+        ensure_trip_member(db, trip_id, current_user.id)
+        return get_trip_members(db, trip_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+
+@router.post("/{trip_id}/invite", response_model=TripMemberResponse, status_code=status.HTTP_201_CREATED)
+def invite_to_trip(
+    trip_id: UUID,
+    invite_data: TripInviteRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        trip = get_trip_or_404(db, trip_id)
+        return invite_member(db, trip, invite_data, current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+
+@router.post("/{trip_id}/respond", response_model=TripMemberResponse)
+def respond_to_trip_invite(
+    trip_id: UUID,
+    respond_data: TripRespondRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        return respond_to_invite(db, trip_id, current_user.id, respond_data.accept)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/{trip_id}/leave", response_model=TripMemberResponse)
+def leave_trip_endpoint(
+    trip_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        trip = get_trip_or_404(db, trip_id)
+        return leave_trip(db, trip, current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) 
+    

@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 
 from app.models.trip import Trip
 from app.models.trip_member import TripMember
+from app.core.constants import MemberStatus
+from app.models.user import User
 
 
 def create_trip_row(db: Session, trip: Trip) -> Trip:
@@ -36,14 +38,30 @@ def get_trips_for_user(
     db: Session,
     user_id: UUID,
 ) -> list[Trip]:
-    """Return trips where the user is a member."""
+    """Return trips where the user is an ACTIVE (joined) member."""
     return (
         db.query(Trip)
-        .join(
-            TripMember,
-            TripMember.trip_id == Trip.id,
+        .join(TripMember, TripMember.trip_id == Trip.id)
+        .filter(
+            TripMember.user_id == user_id,
+            TripMember.status == MemberStatus.JOINED.value,
         )
-        .filter(TripMember.user_id == user_id)
+        .all()
+    )
+
+
+def get_pending_invites_for_user(
+    db: Session,
+    user_id: UUID,
+) -> list[Trip]:
+    """Return trips where the user has a pending (invited) membership."""
+    return (
+        db.query(Trip)
+        .join(TripMember, TripMember.trip_id == Trip.id)
+        .filter(
+            TripMember.user_id == user_id,
+            TripMember.status == MemberStatus.INVITED.value,
+        )
         .all()
     )
 
@@ -71,6 +89,17 @@ def get_trip_members(
         db.query(TripMember)
         .filter(TripMember.trip_id == trip_id)
         .all()
+    )
+
+
+def get_user_by_email_for_invite(
+    db: Session,
+    email: str,
+) -> User | None:
+    return (
+        db.query(User)
+        .filter(User.email == email)
+        .first()
     )
 
 
