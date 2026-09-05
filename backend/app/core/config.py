@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(
         alias="ACCESS_TOKEN_EXPIRE_MINUTES"
     )
+    cors_origins: str = Field(
+        default="http://localhost:5173,http://127.0.0.1:5173",
+        alias="CORS_ORIGINS",
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -18,3 +22,11 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def get_cors_origins() -> list[str]:
+    return [
+        origin.strip()
+        for origin in settings.cors_origins.split(",")
+        if origin.strip()
+    ]

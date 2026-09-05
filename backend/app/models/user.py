@@ -1,5 +1,3 @@
-import uuid
-
 from sqlalchemy import Column, String, Boolean
 
 from app.models.base import BaseModel
