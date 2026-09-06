@@ -15,6 +15,8 @@ from app.models.base import BaseModel
 from app.models.user import User
 from app.models.trip import Trip
 from app.models.trip_member import TripMember
+from app.models.trip_preference import TripPreference
+
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

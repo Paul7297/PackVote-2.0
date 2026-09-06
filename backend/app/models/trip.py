@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Text, Integer, Date, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from app.models.base import BaseModel
-from app.core.constants import TripStatus
+from app.core.constants import TripStatus, TravelerType
 
 
 class Trip(BaseModel):
@@ -18,3 +18,4 @@ class Trip(BaseModel):
     end_date = Column(Date, nullable=True)
 
     status = Column(String(20), nullable=False, default=TripStatus.PLANNING.value)
+    traveler_type = Column(String(20), nullable=True, default=None)

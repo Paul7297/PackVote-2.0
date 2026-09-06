@@ -38,6 +38,11 @@ def create_trip(
             budget_max=trip_data.budget_max,
             start_date=trip_data.start_date,
             end_date=trip_data.end_date,
+            traveler_type=(
+                trip_data.traveler_type.value
+                if trip_data.traveler_type is not None
+                else None
+            ),
         )
 
         create_trip_row(db, trip)
@@ -123,6 +128,15 @@ def update_trip(
 
     try:
         update_fields = update_data.model_dump(exclude_unset=True)
+
+        if "traveler_type" in update_fields:
+            traveler_type = update_fields["traveler_type"]
+
+            update_fields["traveler_type"] = (
+                traveler_type.value
+                if traveler_type is not None
+                else None
+            )
 
         for field, value in update_fields.items():
             setattr(trip, field, value)

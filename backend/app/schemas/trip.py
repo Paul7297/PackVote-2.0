@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, model_validator
-from app.core.constants import TripStatus, MemberRole, MemberStatus
+from app.core.constants import TripStatus, MemberRole, MemberStatus, TravelerType
 
 
 class TripCreate(BaseModel):
@@ -11,6 +11,7 @@ class TripCreate(BaseModel):
     budget_max: int | None = Field(default=None, ge=0)
     start_date: date | None = None
     end_date: date | None = None
+    traveler_type: TravelerType | None = None
 
     @model_validator(mode="after")
     def validate_trip(self):
@@ -37,6 +38,7 @@ class TripUpdate(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     status: TripStatus | None = None
+    traveler_type: TravelerType | None = None
 
     @model_validator(mode="after")
     def validate_trip(self):
@@ -65,6 +67,7 @@ class TripResponse(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     status: TripStatus
+    traveler_type: TravelerType | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -83,10 +86,10 @@ class TripMemberResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class TripInviteRequest(BaseModel):
     email: EmailStr
 
 
 class TripRespondRequest(BaseModel):
     accept: bool
-
