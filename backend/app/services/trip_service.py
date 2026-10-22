@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 
 from app.models.trip import Trip
 from app.models.trip_member import TripMember
@@ -16,6 +17,7 @@ from app.crud.trip import (
     get_trip_member,
     get_trip_members as get_trip_members_crud,
     get_user_by_email_for_invite,
+    get_archived_trips_for_organizer,
 )
 
 
@@ -290,6 +292,57 @@ def leave_trip(
         db.commit()
         db.refresh(member)
         return member
+    except Exception:
+        db.rollback()
+        raise
+
+def get_organizer_trip_history(
+    db: Session,
+    organizer_id: UUID,
+) -> list[Trip]:
+    """Return archived trips belonging to the organizer."""
+    return get_archived_trips_for_organizer(db, organizer_id)
+
+
+def archive_trip(
+    db: Session,
+    trip: Trip,
+    organizer_id: UUID,
+) -> Trip:
+    """Archive a trip owned by the organizer."""
+    if trip.organizer_id != organizer_id:
+        raise PermissionError("Only the organizer can archive this trip")
+
+    if trip.archived_at is not None:
+        raise ValueError("This trip is already archived")
+
+    try:
+        trip.archived_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(trip)
+        return trip
+    except Exception:
+        db.rollback()
+        raise
+
+
+def restore_trip(
+    db: Session,
+    trip: Trip,
+    organizer_id: UUID,
+) -> Trip:
+    """Restore an archived trip owned by the organizer."""
+    if trip.organizer_id != organizer_id:
+        raise PermissionError("Only the organizer can restore this trip")
+
+    if trip.archived_at is None:
+        raise ValueError("This trip is not archived")
+
+    try:
+        trip.archived_at = None
+        db.commit()
+        db.refresh(trip)
+        return trip
     except Exception:
         db.rollback()
         raise

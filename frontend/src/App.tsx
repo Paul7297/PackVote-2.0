@@ -1,121 +1,83 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { AuthProvider } from './context/AuthContext'
+import { useAuth } from './context/useAuth'
+import { LoadingState } from './components/LoadingState'
+import { AuthPage } from './pages/AuthPage'
+import { DashboardPage } from './pages/DashboardPage'
+import { TripDetailsPage } from './pages/TripDetailsPage'
+import type { Trip } from './types/models'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+function Brand() {
+  return (
+    <div className="brand" aria-label="PackVote">
+      <span className="brand-mark" aria-hidden="true">P</span>
+      <span>packvote</span>
+    </div>
+  )
+}
+
+function Workspace() {
+  const { user, isInitializing, sessionNotice, logout } = useAuth()
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null)
+
+  if (isInitializing) {
+    return <LoadingState />
+  }
+
+  if (!user) {
+    return <AuthPage notice={sessionNotice} />
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="topbar-inner">
+          <Brand />
+          <div className="topbar-right">
+            <span className="workspace-label"><span className="workspace-indicator" /> Your travel workspace</span>
+            <span className="topbar-divider" />
+            <span className="user-greeting">Hey, {user.full_name.split(' ')[0]}</span>
+            <span className="user-avatar" aria-hidden="true">
+              {user.full_name.trim().charAt(0).toUpperCase()}
+            </span>
+            <button className="signout-button" type="button" onClick={() => {
+              setSelectedTripId(null)
+              logout()
+            }}>
+              Sign out
+            </button>
+          </div>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </header>
+      <main className="workspace-main">
+        {selectedTripId ? (
+          <TripDetailsPage
+            key={selectedTripId}
+            tripId={selectedTripId}
+            user={user}
+            onBack={() => setSelectedTripId(null)}
+          />
+        ) : (
+          <DashboardPage
+            onOpenTrip={(trip: Trip) => setSelectedTripId(trip.id)}
+          />
+        )}
+      </main>
+      <footer className="app-footer">
+        <Brand />
+        <span>Better trips happen when everyone has a say.</span>
+        <span className="footer-spark" aria-hidden="true">✳</span>
+      </footer>
+    </div>
+  )
+}
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+function App() {
+  return (
+    <AuthProvider>
+      <Workspace />
+    </AuthProvider>
   )
 }
 

@@ -45,6 +45,7 @@ def get_trips_for_user(
         .filter(
             TripMember.user_id == user_id,
             TripMember.status == MemberStatus.JOINED.value,
+            Trip.archived_at.is_(None),
         )
         .all()
     )
@@ -61,6 +62,7 @@ def get_pending_invites_for_user(
         .filter(
             TripMember.user_id == user_id,
             TripMember.status == MemberStatus.INVITED.value,
+	        Trip.archived_at.is_(None),
         )
         .all()
     )
@@ -127,3 +129,18 @@ def delete_trip_member_row(
 ) -> None:
     """Delete a TripMember row. Does not commit."""
     db.delete(member)
+
+def get_archived_trips_for_organizer(
+    db: Session,
+    organizer_id: UUID,
+) -> list[Trip]:
+    """Return archived trips belonging to the organizer, newest first."""
+    return (
+        db.query(Trip)
+        .filter(
+            Trip.organizer_id == organizer_id,
+            Trip.archived_at.is_not(None),
+        )
+        .order_by(Trip.archived_at.desc())
+        .all()
+    )

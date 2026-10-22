@@ -5,7 +5,16 @@ from sqlalchemy.orm import Session
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from app.api import auth, trip_preferences, trips, users
+from app.api import (
+    auth,
+    destinations,
+    trip_destinations,
+    trip_destination_suggestions,
+    trip_preferences,
+    trip_votes,
+    trips,
+    users,
+)
 from app.core.config import get_cors_origins
 from app.core.limiter import limiter
 from app.database.database import get_db
@@ -33,6 +42,10 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(trips.router)
 app.include_router(trip_preferences.router)
+app.include_router(destinations.router)
+app.include_router(trip_destinations.router)
+app.include_router(trip_destination_suggestions.router)
+app.include_router(trip_votes.router)
 
 
 @app.get("/")

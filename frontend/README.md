@@ -1,75 +1,25 @@
-# React + TypeScript + Vite
+# PackVote frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + TypeScript + Vite client for the PackVote authentication, trips, members, and preferences MVP.
 
-Currently, two official plugins are available:
+## Local development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Start the PackVote FastAPI backend.
+2. Copy `.env.example` to `.env.local` and set `VITE_API_BASE_URL` to the backend origin (for example, `http://localhost:8000`).
+3. Install packages with `npm ci`, then run `npm run dev`.
 
-## React Compiler
+The frontend uses the browser's in-memory state for the access token and `sessionStorage` for the refresh token. Do not put tokens, passwords, or the Geoapify API key in Vite environment variables; `VITE_*` values are public in the built client.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Current scope
 
-## Expanding the ESLint configuration
+- Register/login, refresh-based session restoration, and logout.
+- Trip dashboard, trip creation/details, invitations, and member status.
+- Preference submission/editing and group completion status.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Trip details include destination search/selection/confirmation, organizer candidate management, and voting/results, wired to the separately verified backend contract. The backend route modules are not present in this frontend worktree, so configure `VITE_API_BASE_URL` to the backend instance that provides those routes. Do not point this build at the stale backend checkout that only exposes auth, trips, users, and preferences.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Live travel data, ML, LLM, and RAG are not part of this frontend phase.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Checks
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+Run `npm run lint` and `npm run build`.

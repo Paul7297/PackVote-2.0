@@ -18,7 +18,7 @@ class MemberStatus(str, Enum):
     JOINED = "joined"
     DECLINED = "declined"
     LEFT = "left"
-    
+
 
 class TravelerType(str, Enum):
     SOLO = "solo"
@@ -32,13 +32,6 @@ class BudgetRange(str, Enum):
     RANGE_10_20K = "10k_20k"
     RANGE_20_40K = "20k_40k"
     RANGE_40K_PLUS = "40k_plus"
-
-
-class ClimatePreference(str, Enum):
-    COLD = "cold"
-    MODERATE = "moderate"
-    WARM = "warm"
-    NO_PREFERENCE = "no_preference"
 
 
 class AccommodationPref(str, Enum):
@@ -90,3 +83,35 @@ class Activity(str, Enum):
     PHOTOGRAPHY = "photography"
     NIGHTLIFE = "nightlife"
     SPA_WELLNESS = "spa_wellness"
+
+
+class ClimatePreference(str, Enum):
+    COLD = "cold"
+    MODERATE = "moderate"
+    WARM = "warm"
+    TROPICAL = "tropical"
+    NO_PREFERENCE = "no_preference"
+
+
+class DestinationClimate(str, Enum):
+    COLD = "cold"
+    MODERATE = "moderate"
+    WARM = "warm"
+    TROPICAL = "tropical"
+
+
+class CostTier(str, Enum):
+    BUDGET = "budget"
+    MID = "mid"
+    LUXURY = "luxury"
+
+
+class DestinationStatus(str, Enum):
+    PROPOSED = "proposed"
+    FINALIZED = "finalized"
+    REJECTED = "rejected"
+
+
+class CandidateSource(str, Enum):
+    MANUAL = "manual"
+    ML = "ml"

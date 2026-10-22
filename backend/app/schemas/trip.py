@@ -68,6 +68,7 @@ class TripResponse(BaseModel):
     end_date: date | None = None
     status: TripStatus
     traveler_type: TravelerType | None = None
+    archived_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

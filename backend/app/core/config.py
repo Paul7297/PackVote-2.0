@@ -13,6 +13,14 @@ class Settings(BaseSettings):
         default="http://localhost:5173,http://127.0.0.1:5173",
         alias="CORS_ORIGINS",
     )
+    geocoding_provider: str = Field(
+        default="geoapify",
+        alias="GEOCODING_PROVIDER",
+    )
+    geoapify_api_key: str = Field(
+        default="",
+        alias="GEOAPIFY_API_KEY",
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

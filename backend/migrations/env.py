@@ -16,6 +16,10 @@ from app.models.user import User
 from app.models.trip import Trip
 from app.models.trip_member import TripMember
 from app.models.trip_preference import TripPreference
+from app.models.destination import Destination
+from app.models.trip_destination import TripDestination
+from app.models.trip_vote import TripVote
+from app.models.trip_destination_suggestion import TripDestinationSuggestion
 
 
 config = context.config

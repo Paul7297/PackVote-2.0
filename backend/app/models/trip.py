@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Integer, Date, ForeignKey
+from sqlalchemy import Column, String, Text, Integer, Date, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from app.models.base import BaseModel
 from app.core.constants import TripStatus, TravelerType
@@ -19,3 +19,4 @@ class Trip(BaseModel):
 
     status = Column(String(20), nullable=False, default=TripStatus.PLANNING.value)
     traveler_type = Column(String(20), nullable=True, default=None)
+    archived_at = Column(DateTime(timezone=True), nullable=True, default=None)

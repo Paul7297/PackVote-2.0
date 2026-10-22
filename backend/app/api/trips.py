@@ -26,6 +26,9 @@ from app.services.trip_service import (
     respond_to_invite,
     leave_trip,
     get_trip_members,
+    archive_trip,
+    get_organizer_trip_history,
+    restore_trip,
 )
 
 router = APIRouter(
@@ -71,6 +74,69 @@ def list_my_invitations(
     db: Session = Depends(get_db),
 ):
     return get_user_invites(db, current_user.id)
+
+@router.get("/history", response_model=list[TripResponse])
+def list_organizer_trip_history_endpoint(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return get_organizer_trip_history(db, current_user.id)
+
+@router.post("/{trip_id}/archive", response_model=TripResponse)
+def archive_trip_endpoint(
+    trip_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        trip = get_trip_or_404(db, trip_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+
+    try:
+        return archive_trip(db, trip, current_user.id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e),
+        )
+
+
+@router.post("/{trip_id}/restore", response_model=TripResponse)
+def restore_trip_endpoint(
+    trip_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        trip = get_trip_or_404(db, trip_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+
+    try:
+        return restore_trip(db, trip, current_user.id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e),
+        )
+
 
 
 @router.get(
