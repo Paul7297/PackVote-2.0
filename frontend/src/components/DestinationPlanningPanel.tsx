@@ -8,6 +8,7 @@ import {
   rejectTripDestination,
   searchDestinations,
 } from '../api/destinations'
+import { updateTripStatus } from '../api/trips'
 import { getMyVote, getVoteResults, submitVote } from '../api/votes'
 import { Notice } from './Notice'
 import type {
@@ -28,8 +29,14 @@ function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback
 }
 
-function destinationLabel(destination: Destination | undefined, id: string): string {
-  return destination?.name ?? `Destination ${id.slice(0, 8)}`
+function destinationLabel(destination: Destination | null | undefined, id?: string | null): string {
+  if (destination?.name) {
+    return destination.name
+  }
+  if (id) {
+    return `Destination ${id.slice(0, 8)}`
+  }
+  return 'Selected Destination'
 }
 
 function placeDetails(place: Destination | DestinationSearchResult): string {
@@ -234,6 +241,25 @@ export function DestinationPlanningPanel({
     }
   }
 
+  async function handleStartVoting() {
+    if (!candidates.some((candidate) => candidate.status.toLowerCase() === 'proposed')) {
+      setError('Add at least one proposed destination before starting the vote.')
+      return
+    }
+    setBusyAction('start-voting')
+    setError(null)
+    setMessage(null)
+    try {
+      await updateTripStatus(tripId, 'voting')
+      await onTripUpdated()
+      setMessage('Voting is open. Everyone in the trip can now vote.')
+    } catch (startError) {
+      setError(errorMessage(startError, 'Could not start voting.'))
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
   async function handleVote(candidate: TripDestination) {
     const actionKey = `vote:${candidate.id}`
     setBusyAction(actionKey)
@@ -272,6 +298,9 @@ export function DestinationPlanningPanel({
   const activeCandidates = tripStatus === 'voting'
     ? candidates.filter((candidate) => candidate.status.toLowerCase() !== 'rejected')
     : candidates
+  const hasProposedCandidates = candidates.some(
+    (candidate) => candidate.status.toLowerCase() === 'proposed',
+  )
 
   return (
     <section className="panel destination-planning-panel" aria-labelledby="destination-planning-title">
@@ -301,6 +330,27 @@ export function DestinationPlanningPanel({
           </p>
         </div>
       </div>
+
+            {tripStatus === 'finalized' && (
+        <div className="finalized-destination-hero">
+          <div className="finalized-badge">🎉 Final Destination Confirmed</div>
+          {(() => {
+            const finalizedCandidate = candidates.find((c) => c.status.toLowerCase() === 'finalized')
+            const dest = finalizedCandidate ? destinationById.get(finalizedCandidate.destination_id) : null
+            return finalizedCandidate ? (
+              <div className="finalized-destination-card">
+                <h3>{destinationLabel(dest, finalizedCandidate.destination_id)}</h3>
+                <p>{dest ? placeDetails(dest) : ''}</p>
+                <span className="finalized-subtext">
+                  The group has voted and the organizer has confirmed this destination for the trip!
+                </span>
+              </div>
+            ) : (
+              <p>This trip has been finalized.</p>
+            )
+          })()}
+        </div>
+      )}
 
       {error && <Notice>{error}</Notice>}
       {message && <Notice tone="success">{message}</Notice>}
@@ -407,7 +457,21 @@ export function DestinationPlanningPanel({
             <span className="eyebrow">Places being considered</span>
             <h3>Trip candidates</h3>
           </div>
-          <span className="count-badge">{activeCandidates.length}</span>
+          <div className="candidate-heading-actions">
+            <button
+              className="button button--quiet button--small"
+              type="button"
+              disabled={isLoading}
+              onClick={() => {
+                void refreshCandidates()
+                if (tripStatus === 'voting') void refreshResults()
+              }}
+              title="Refresh candidate list and live votes"
+            >
+              🔄 Refresh
+            </button>
+            <span className="count-badge">{activeCandidates.length}</span>
+          </div>
         </div>
 
         {isLoading ? (
@@ -443,7 +507,7 @@ export function DestinationPlanningPanel({
                     )}
                   </div>
 
-                  {!readOnly && isOrganizer && tripStatus === 'planning' && canManageCandidate && (
+                  {!readOnly && isOrganizer && (tripStatus === 'planning' || tripStatus === 'voting') && canManageCandidate && (
                     <div className="candidate-actions">
                       <button
                         className="button button--outline button--small"
@@ -488,6 +552,24 @@ export function DestinationPlanningPanel({
         )}
       </div>
 
+            {!readOnly && isOrganizer && tripStatus === 'planning' && (
+        <div className="candidate-actions">
+          <button
+            className="button button--primary"
+            type="button"
+            disabled={!hasProposedCandidates || busyAction === 'start-voting'}
+            onClick={() => void handleStartVoting()}
+          >
+            {busyAction === 'start-voting' ? 'Starting voting…' : 'Start voting'}
+          </button>
+          {!hasProposedCandidates && (
+            <p className="destination-empty-hint">
+              Add at least one proposed destination candidate to start voting.
+            </p>
+          )}
+        </div>
+      )}
+
       {tripStatus === 'voting' && (
         <div className="vote-results">
           <div className="candidate-section-heading">
@@ -497,14 +579,88 @@ export function DestinationPlanningPanel({
             </div>
             <span className="count-badge">{voteResults?.total_votes ?? 0}</span>
           </div>
-          {voteResults ? (
-            <p className="destination-empty-hint">
-              {voteResults.total_votes === 0
-                ? 'No votes yet. Be the first to choose.'
-                : `${voteResults.total_votes} ${voteResults.total_votes === 1 ? 'vote has' : 'votes have'} been counted.`}
-            </p>
-          ) : (
-            <p className="destination-empty-hint">Vote totals are not available yet.</p>
+
+          {voteResults && (
+            <div className="vote-results-summary">
+              {voteResults.participation_count !== undefined && voteResults.total_eligible_members ? (
+                <p className="vote-participation-text">
+                  👥 <strong>{voteResults.participation_count}</strong> of{' '}
+                  <strong>{voteResults.total_eligible_members}</strong> joined members have voted
+                  ({Math.round((voteResults.participation_count / voteResults.total_eligible_members) * 100)}% participation).
+                </p>
+              ) : null}
+
+              {voteResults.is_tie && (
+                <div className="vote-tie-alert">
+                  <span className="tie-badge">⚖️ Tie Detected</span>
+                  <p>
+                    Multiple destinations share the highest vote count. Members may change their vote, or the organizer can break the tie by confirming a destination.
+                  </p>
+                </div>
+              )}
+
+              {voteResults.winner_trip_destination_id && !voteResults.is_tie && (
+                <div className="vote-winner-banner">
+                  <span className="winner-badge">🏆 Leading Candidate</span>
+                  <p>
+                    <strong>
+                      {(() => {
+                        const winCand = candidates.find((c) => c.id === voteResults.winner_trip_destination_id);
+                        const winDest = winCand ? destinationById.get(winCand.destination_id) : undefined;
+                        return destinationLabel(winDest, voteResults.winner_trip_destination_id);
+                      })()}
+                    </strong>{' '}
+                    is currently in the lead!
+                    {isOrganizer && ' You can confirm this destination to finalize the trip.'}
+                  </p>
+                </div>
+              )}
+
+              <div className="vote-bars-list">
+                {activeCandidates.map((candidate) => {
+                  const destination = destinationById.get(candidate.destination_id)
+                  const count = resultCounts.get(candidate.id) ?? 0
+                  const pct = voteResults.total_votes > 0
+                    ? Math.round((count / voteResults.total_votes) * 100)
+                    : 0
+                  const isLeading = voteResults.winner_trip_destination_id === candidate.id
+
+                  return (
+                    <div className={`vote-bar-item ${isLeading ? 'vote-bar-item--lead' : ''}`} key={candidate.id}>
+                      <div className="vote-bar-header">
+                        <span className="vote-bar-name">
+                          {destinationLabel(destination, candidate.destination_id)}
+                          {isLeading && ' 🏆'}
+                        </span>
+                        <span className="vote-bar-stat">
+                          {count} {count === 1 ? 'vote' : 'votes'} ({pct}%)
+                        </span>
+                      </div>
+                      <div className="vote-bar-track">
+                        <div
+                          className="vote-bar-fill"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      {isOrganizer && !readOnly && candidate.status.toLowerCase() !== 'finalized' && (
+                        <div className="vote-bar-action">
+                          <button
+                            className="button button--primary button--small"
+                            type="button"
+                            disabled={busyAction === `finalize:${candidate.id}`}
+                            onClick={() => void handleCandidateAction(candidate, 'finalize')}
+                          >
+                            {busyAction === `finalize:${candidate.id}`
+                              ? 'Confirming…'
+                              : 'Confirm as Final Destination'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           )}
         </div>
       )}

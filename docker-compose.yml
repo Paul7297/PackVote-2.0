@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: packvote-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: packvote
+      POSTGRES_USER: packvote
+      POSTGRES_PASSWORD: packvote
+    ports:
+      - "5432:5432"
+    volumes:
+      - packvote_db:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    container_name: packvote-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://packvote:packvote@db:5432/packvote
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: packvote-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  packvote_db:

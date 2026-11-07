@@ -1,5 +1,6 @@
 import { apiRequest } from './client'
-import type { Trip, TripCreate, TripMember } from '../types/models'
+// import type { Trip, TripCreate, TripMember } from '../types/models'
+import type { Trip, TripCreate, TripMember, TripStatus } from '../types/models'
 
 export function listTrips(): Promise<Trip[]> {
   return apiRequest<Trip[]>('/trips')
@@ -11,6 +12,13 @@ export function listInvitations(): Promise<Trip[]> {
 
 export function getTrip(tripId: string): Promise<Trip> {
   return apiRequest<Trip>(`/trips/${encodeURIComponent(tripId)}`)
+}
+
+export function updateTripStatus(tripId: string, status: TripStatus): Promise<Trip> {
+  return apiRequest<Trip>(`/trips/${encodeURIComponent(tripId)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  })
 }
 
 export function createTrip(data: TripCreate): Promise<Trip> {

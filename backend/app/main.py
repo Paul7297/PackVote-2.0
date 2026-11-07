@@ -6,8 +6,11 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api import (
+    ai_assistant,
     auth,
+    cost_estimates,
     destinations,
+    recommendations,
     trip_destinations,
     trip_destination_suggestions,
     trip_preferences,
@@ -46,6 +49,9 @@ app.include_router(destinations.router)
 app.include_router(trip_destinations.router)
 app.include_router(trip_destination_suggestions.router)
 app.include_router(trip_votes.router)
+app.include_router(recommendations.router)
+app.include_router(cost_estimates.router)
+app.include_router(ai_assistant.router)
 
 
 @app.get("/")

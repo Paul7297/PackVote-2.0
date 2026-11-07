@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: packvote
+          POSTGRES_USER: packvote
+          POSTGRES_PASSWORD: packvote
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U packvote -d packvote"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://packvote:packvote@localhost:5432/packvote
+      SECRET_KEY: test-secret-key
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      GEOCODING_PROVIDER: geoapify
+      GEOAPIFY_API_KEY: test-geoapify-key
+      GEMINI_API_KEY: test-gemini-key
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Validate API contracts
+        run: python backend/scripts/validate_api_contracts.py
+
+      - name: Run backend tests
+        run: pytest backend/tests/test_api_contracts.py -q
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: http://localhost:8000
+        run: npm run build

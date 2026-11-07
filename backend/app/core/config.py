@@ -21,6 +21,7 @@ class Settings(BaseSettings):
         default="",
         alias="GEOAPIFY_API_KEY",
     )
+    gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
 
     model_config = SettingsConfigDict(
         env_file=".env",

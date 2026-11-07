@@ -8,6 +8,7 @@ from app.core.constants import CandidateSource, DestinationStatus
 
 class TripDestinationCreate(BaseModel):
     destination_id: UUID
+    source: CandidateSource = CandidateSource.MANUAL
 
 
 class ConfirmPlaceRequest(BaseModel):

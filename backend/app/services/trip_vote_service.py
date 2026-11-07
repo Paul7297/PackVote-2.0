@@ -20,6 +20,7 @@ from app.crud.trip_vote import (
     update_vote_row,
 )
 from app.models.trip_vote import TripVote
+from app.models.trip_member import TripMember
 from app.schemas.trip_vote import TripVoteResults
 
 
@@ -235,8 +236,51 @@ def get_trip_vote_results(
         for result in results
     )
 
+    for item in results:
+        item["vote_percentage"] = (
+            round((item["vote_count"] / total_votes) * 100, 1)
+            if total_votes > 0
+            else 0.0
+        )
+
+    # Sort results by vote_count descending
+    results.sort(key=lambda x: x["vote_count"], reverse=True)
+
+    # Check for winner or tie
+    winner_id = None
+    is_tie = False
+    tie_ids = []
+
+    if total_votes > 0 and results:
+        max_votes = results[0]["vote_count"]
+        if max_votes > 0:
+            top_candidates = [
+                r["trip_destination_id"]
+                for r in results
+                if r["vote_count"] == max_votes
+            ]
+            if len(top_candidates) == 1:
+                winner_id = top_candidates[0]
+            else:
+                is_tie = True
+                tie_ids = top_candidates
+
+    total_eligible = (
+        db.query(TripMember)
+        .filter(
+            TripMember.trip_id == trip_id,
+            TripMember.status == MemberStatus.JOINED.value,
+        )
+        .count()
+    )
+
     return TripVoteResults(
         trip_id=trip_id,
         total_votes=total_votes,
         results=results,
+        winner_trip_destination_id=winner_id,
+        is_tie=is_tie,
+        tie_trip_destination_ids=tie_ids,
+        participation_count=total_votes,
+        total_eligible_members=total_eligible,
     )

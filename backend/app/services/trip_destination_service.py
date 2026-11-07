@@ -7,6 +7,7 @@ from app.core.constants import (
     CandidateSource,
     DestinationStatus,
     MemberStatus,
+    TripStatus,
 )
 from app.crud.destination import (
     create_destination_row,
@@ -76,7 +77,7 @@ def add_candidate(
         trip_id=trip_id,
         destination_id=candidate_data.destination_id,
         added_by=user_id,
-        source=CandidateSource.MANUAL.value,
+        source=candidate_data.source.value if hasattr(candidate_data.source, "value") else candidate_data.source,
         status=DestinationStatus.PROPOSED.value,
     )
 
@@ -257,9 +258,17 @@ def finalize_candidate(
         )
 
     candidate.status = DestinationStatus.FINALIZED.value
+    trip.status = TripStatus.FINALIZED.value
 
     try:
         update_trip_destination_row(db, candidate)
+
+        # Mark other proposed candidates as rejected so the decision is finalized
+        for item in get_candidates_for_trip(db, trip_id):
+            if item.id != candidate.id and item.status == DestinationStatus.PROPOSED.value:
+                item.status = DestinationStatus.REJECTED.value
+                update_trip_destination_row(db, item)
+
         db.commit()
         db.refresh(candidate)
 

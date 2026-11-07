@@ -31,6 +31,7 @@ class TripVoteCount(BaseModel):
     """
     trip_destination_id: UUID
     vote_count: int
+    vote_percentage: float = 0.0
 
 
 class TripVoteResults(BaseModel):
@@ -40,3 +41,8 @@ class TripVoteResults(BaseModel):
     trip_id: UUID
     total_votes: int
     results: list[TripVoteCount]
+    winner_trip_destination_id: UUID | None = None
+    is_tie: bool = False
+    tie_trip_destination_ids: list[UUID] = []
+    participation_count: int = 0
+    total_eligible_members: int = 0

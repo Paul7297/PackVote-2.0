@@ -111,7 +111,13 @@ export interface TripVoteResults {
   results: {
     trip_destination_id: string
     vote_count: number
+    vote_percentage?: number
   }[]
+  winner_trip_destination_id?: string | null
+  is_tie?: boolean
+  tie_trip_destination_ids?: string[]
+  participation_count?: number
+  total_eligible_members?: number
 }
 
 export interface PreferenceCompletionStatus {
@@ -168,3 +174,147 @@ export type TripPreferenceInput = Omit<
   TripPreference,
   'id' | 'trip_id' | 'user_id' | 'created_at' | 'updated_at'
 >
+
+
+// ── ML Recommendations ───────────────────────────────────────────────────────
+
+export interface TransportOptionSummary {
+  mode: 'flight' | 'train' | 'car'
+  label: string
+  estimated_cost_per_person: number
+  details: string
+}
+
+export interface DestinationSummary {
+  verdict: string
+  verdict_tone: 'success' | 'warning' | 'info'
+  benefits: string[]
+  cautions: string[]
+  estimated_budget_per_person: number | null
+  budget_status: 'within_budget' | 'stretch' | 'exceeds' | null
+  origin_city?: string | null
+  weather_summary: string | null
+  transport_options: TransportOptionSummary[]
+}
+
+export interface RecommendationItem {
+  destination_id: string
+  name: string
+  compatibility_score: number | null
+  reasons: string[]
+  metadata_status: 'complete' | 'partial' | 'insufficient'
+  missing_attributes: string[]
+  summary?: DestinationSummary | null
+}
+
+// ── Weather ──────────────────────────────────────────────────────────────────
+
+export interface WeatherDay {
+  date: string
+  data_type: 'forecast' | 'historical_reanalysis'
+  source: string
+  weather_code: number | null
+  description: string
+  temperature_max_c: number | null
+  temperature_min_c: number | null
+  precipitation_mm: number | null
+  maximum_wind_speed_kmh: number | null
+}
+
+export interface WeatherResponse {
+  destination_id: string
+  destination_name: string
+  source: string[]
+  attribution: string
+  timezone: string
+  trip_dates_set: boolean
+  weather_data_available: boolean
+  forecast_available: boolean
+  historical_data_available: boolean
+  covers_full_trip: boolean
+  missing_weather_dates: string[]
+  days: WeatherDay[]
+  message: string
+}
+
+// ── Cost Estimates ────────────────────────────────────────────────────────────
+
+export interface HotelCostComponent {
+  per_room_per_night: number
+  rooms: number
+  nights: number
+  total: number
+}
+
+export interface FoodCostComponent {
+  per_person_per_day: number
+  total: number
+}
+
+export interface SimpleCostComponent {
+  per_person: number
+  total: number
+}
+
+export interface ActivityCostComponent {
+  per_person: number
+  activity_count: number
+  total: number
+}
+
+export interface FlightCostComponent {
+  per_person_round_trip: number
+  total: number
+}
+
+export interface RoadTransitDetail {
+  one_way_km: number
+  car: {
+    petrol_price_per_litre: number
+    litres_needed: number
+    fuel_cost: number
+    toll_charges: number
+    per_person: number
+  }
+}
+
+export interface CostEstimate {
+  currency: string
+  member_count: number
+  trip_nights: number
+  destination_name: string
+  cost_tier_used: string
+  estimation_method: string
+  assumptions: string[]
+  components: {
+    hotel: HotelCostComponent
+    food: FoodCostComponent
+    local_transport: SimpleCostComponent
+    activities: ActivityCostComponent
+    flights: FlightCostComponent
+    train?: SimpleCostComponent
+    car_road?: { fuel_cost: number; toll_charges: number; per_person: number; total: number }
+  }
+  transport_options?: TransportOptionSummary[]
+  transit_details?: RoadTransitDetail
+  origin_city?: string | null
+  alternatives?: {
+    total_with_train_per_person: number
+    total_with_car_per_person: number
+  }
+  total_group_cost: number
+  per_person_cost: number
+  data_sources: string[]
+  missing_data: string[]
+}
+
+// ── AI Assistant ──────────────────────────────────────────────────────────────
+
+export interface AiResponse {
+  type?: string
+  destination?: string
+  destinations?: string[]
+  content: string | null
+  error?: string | null
+  evidence_used?: string[]
+}
