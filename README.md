@@ -1,4 +1,26 @@
 # PackVote
+## About PackVote 2.0
+
+PackVote 2.0 is an intelligent group travel planning and decision-making platform designed to simplify the process of choosing a travel destination.
+
+Planning a group trip can be challenging because every member has different interests, budgets, travel styles, and destination preferences. PackVote addresses this problem by bringing group preferences, destination recommendations, and collaborative voting together in one platform.
+
+### Key Features
+
+- **Group Trip Planning:** Create trips and invite members to participate.
+- **Travel Preference Collection:** Collect individual preferences from group members.
+- **ML-Based Destination Recommendations:** Analyze preferences and rank suitable destinations using content-based machine learning.
+- **Weather Information:** Provide weather insights for destination comparisons.
+- **Cost Estimation:** Help groups understand estimated travel expenses.
+- **AI Travel Assistant:** Provide conversational assistance for travel-related questions.
+- **Group Voting:** Allow members to vote for proposed destinations and change their votes.
+- **Collaborative Decision-Making:** Help the group reach a final destination decision through voting.
+
+### Project Goal
+
+The goal of PackVote 2.0 is to make group travel planning more organized, intelligent, transparent, and collaborative by combining machine learning, AI-assisted information, and democratic group decision-making.
+
+
 
 PackVote is a travel-planning platform for group trips. The project brings together trip management, destination voting, weather insights, cost estimation, and AI-guided recommendations so a group can decide on the best destination together.
 
